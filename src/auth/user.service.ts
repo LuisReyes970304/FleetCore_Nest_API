@@ -2,12 +2,15 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { hash } from 'bcryptjs';
-import { CreateUserDto } from './dto/create-user.dto.js';
-import { UpdateUserDto } from './dto/update-user.dto.js';
+import { RegisterDto } from './dto/register.dto.js';
 import { User } from './entities/user.entity.js';
 
 const PASSWORD_SALT_ROUNDS = 10;
 
+// Internal-only persistence for the User entity — no controller/CRUD of its own, since
+// POST /auth/register is the single place a user gets created. Used by AuthService
+// (register/login) and MechanicService (validating a user before linking it via
+// Mechanic.userId).
 @Injectable()
 export class UserService {
   constructor(
@@ -15,15 +18,11 @@ export class UserService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  async create(createUserDto: CreateUserDto) {
-    const user = this.userRepository.create(createUserDto);
+  async create(registerDto: RegisterDto) {
+    const user = this.userRepository.create(registerDto);
     user.isActive = true;
-    user.password = await hash(createUserDto.password, PASSWORD_SALT_ROUNDS);
+    user.password = await hash(registerDto.password, PASSWORD_SALT_ROUNDS);
     return this.userRepository.save(user);
-  }
-
-  findAll() {
-    return this.userRepository.find({ where: { isActive: true } });
   }
 
   // includeInactive is needed by AuthService: registration must reject an email that belongs to
@@ -39,22 +38,6 @@ export class UserService {
     if (!user) {
       throw new NotFoundException(`User #${id} not found`);
     }
-    return user;
-  }
-
-  async update(id: number, updateUserDto: UpdateUserDto) {
-    await this.findOne(id);
-    const { password, ...rest } = updateUserDto;
-    const changes = password
-      ? { ...rest, password: await hash(password, PASSWORD_SALT_ROUNDS) }
-      : rest;
-    await this.userRepository.update(id, changes);
-    return this.findOne(id);
-  }
-
-  async remove(id: number) {
-    const user = await this.findOne(id);
-    await this.userRepository.update(id, { isActive: false });
     return user;
   }
 }

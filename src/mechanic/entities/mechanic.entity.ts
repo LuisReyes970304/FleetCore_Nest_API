@@ -1,7 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, OneToMany, OneToOne, JoinColumn, Index, type Relation } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { MechanicStatusEnum } from '../enum/mechanic-status.enum.js';
-import { User } from '../../user/entities/user.entity.js';
+import { User } from '../../auth/entities/user.entity.js';
 import { Maintenance } from '../../maintenance/entities/maintenance.entity.js';
 
 @Entity()

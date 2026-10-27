@@ -4,7 +4,7 @@ import { MaintenanceService } from './maintenance.service.js';
 import { CreateMaintenanceDto } from './dto/create-maintenance.dto.js';
 import { UpdateMaintenanceDto } from './dto/update-maintenance.dto.js';
 import { UpdateMaintenanceStatusDto } from './dto/update-maintenance-status.dto.js';
-import { Roles, RoleEnum } from '../user/enum/roleEnum.js';
+import { Roles, RoleEnum } from '../auth/enum/role.enum.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import type { RequestUser } from '../common/types/request-user.type.js';
 

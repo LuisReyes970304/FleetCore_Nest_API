@@ -1,5 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, Index } from 'typeorm';
-import { RoleEnum } from '../enum/roleEnum.js';
+import { RoleEnum } from '../enum/role.enum.js';
 import { ApiProperty } from '@nestjs/swagger';
 
 @Entity()
@@ -22,10 +22,10 @@ export class User {
   @Column()
   password: string;
 
-  @ApiProperty({ 
-    description: "Choose between Admin and Technician", 
-    enum: RoleEnum, 
-    example: RoleEnum.ADMIN, 
+  @ApiProperty({
+    description: 'Choose between Admin and Technician',
+    enum: RoleEnum,
+    example: RoleEnum.ADMIN,
   })
   @Column({
     type: 'enum',
@@ -33,7 +33,7 @@ export class User {
     default: RoleEnum.ADMIN,
   })
   @Index()
-  role: RoleEnum; 
+  role: RoleEnum;
 
   @Column({ default: true })
   isActive: boolean;

@@ -18,7 +18,7 @@ import { ACTIVE_MAINTENANCE_STATUSES, MaintenanceStatusEnum } from './enum/maint
 import { assertValidTransition } from './maintenance-state-machine.js';
 import { VehicleStatusEnum } from '../vehicle/enum/vehicle-status.enum.js';
 import { RequestUser } from '../common/types/request-user.type.js';
-import { RoleEnum } from '../user/enum/roleEnum.js';
+import { RoleEnum } from '../auth/enum/role.enum.js';
 
 // Not in the spec's literal field list — applied when a client omits scheduledEndAt, so the
 // mechanic-overlap rule always has a real window to compare against.

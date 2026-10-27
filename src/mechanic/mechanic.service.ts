@@ -1,7 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UserService } from '../user/user.service.js';
+import { UserService } from '../auth/user.service.js';
 import { CreateMechanicDto } from './dto/create-mechanic.dto.js';
 import { UpdateMechanicDto } from './dto/update-mechanic.dto.js';
 import { Mechanic } from './entities/mechanic.entity.js';

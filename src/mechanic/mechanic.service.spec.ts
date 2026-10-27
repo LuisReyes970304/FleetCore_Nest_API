@@ -4,7 +4,7 @@ import { ConflictException } from '@nestjs/common';
 import { MechanicService } from './mechanic.service.js';
 import { Mechanic } from './entities/mechanic.entity.js';
 import { MechanicStatusEnum } from './enum/mechanic-status.enum.js';
-import { UserService } from '../user/user.service.js';
+import { UserService } from '../auth/user.service.js';
 
 describe('MechanicService', () => {
   let service: MechanicService;

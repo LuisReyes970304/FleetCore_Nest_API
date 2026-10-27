@@ -3,7 +3,7 @@ import { ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { VehicleService } from './vehicle.service.js';
 import { CreateVehicleDto } from './dto/create-vehicle.dto.js';
 import { UpdateVehicleDto } from './dto/update-vehicle.dto.js';
-import { Roles, RoleEnum } from '../user/enum/roleEnum.js';
+import { Roles, RoleEnum } from '../auth/enum/role.enum.js';
 import { VehicleStatusEnum } from './enum/vehicle-status.enum.js';
 import { Public } from '../common/decorators/public.decorator.js';
 import { ApiKeyGuard } from '../common/guards/api-key.guard.js';

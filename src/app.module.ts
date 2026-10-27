@@ -3,7 +3,6 @@ import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
-import { UserModule } from './user/user.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { WorkshopModule } from './workshop/workshop.module.js';
 import { MechanicModule } from './mechanic/mechanic.module.js';
@@ -34,7 +33,6 @@ import { RolesGuard } from './common/guards/roles.guard.js';
         synchronize: true,
       }),
   }),
-    UserModule,
     AuthModule,
     WorkshopModule,
     MechanicModule,

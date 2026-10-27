@@ -1,4 +1,4 @@
-import { RoleEnum } from '../../user/enum/roleEnum.js';
+import { RoleEnum } from '../../auth/enum/role.enum.js';
 
 export interface RequestUser {
   id: number;

@@ -15,10 +15,7 @@ describe('UserService', () => {
           useValue: {
             create: vi.fn(),
             save: vi.fn(),
-            find: vi.fn(),
             findOneBy: vi.fn(),
-            update: vi.fn(),
-            remove: vi.fn(),
           },
         },
       ],

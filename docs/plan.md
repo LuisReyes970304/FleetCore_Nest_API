@@ -96,7 +96,6 @@ unambiguously admin actions in the spec; everything else below is a judgment cal
 | Endpoint group | ADMIN | TECHNICIAN |
 |---|---|---|
 | `POST /auth/register`, `POST /auth/login` | public | public |
-| `/user/*` (existing CRUD) | yes | no — admin-only user-management panel; self-registration is `/auth/register` instead |
 | Vehicle/Workshop/Mechanic list & get-by-id | yes | yes (spec says "protected," not "admin-only") |
 | Vehicle/Workshop/Mechanic create/update/activate/deactivate | yes | no |
 | `POST /maintenance` | yes | no |
@@ -105,10 +104,15 @@ unambiguously admin actions in the spec; everything else below is a judgment cal
 | `GET /maintenance/mine` (new — no id param) | n/a | yes, resolves their own mechanic profile from their user id |
 | `GET /vehicle/external/:plate` | bypasses JWT — `x-api-key` only | bypasses JWT — `x-api-key` only |
 
-`/user` becoming admin-only is a real behavior change: it used to be unauthenticated. Direct user
-management is now gated by `@Roles(RoleEnum.ADMIN)` on the whole controller, since
-`/auth/register` is the actual public signup path and also issues a JWT (which `/user POST`
-never did).
+A standalone `/user` CRUD controller existed during development (briefly gated admin-only) but was
+removed entirely — it duplicated `POST /auth/register` (the actual public signup path, which also
+issues a JWT), and nothing in the spec calls for user management as its own feature. The `User`
+entity, `UserService`, and the `Roles`/`RoleEnum` decorator all now live under `src/auth/` instead
+of a separate `user` module (see §10) — `UserService` keeps only `create`/`findOne`/`findByEmail`
+(no controller, no `findAll`/`update`/`remove`, no separate `CreateUserDto`/`UpdateUserDto` —
+`RegisterDto` is the one DTO `UserService.create()` takes). It's an internal dependency of
+`AuthModule` (register/login) and `MechanicModule` (validating a user before linking it via
+`Mechanic.userId`, which now imports `AuthModule` instead of a `UserModule`).
 
 ## 9. Self-service ADMIN registration
 
@@ -117,13 +121,15 @@ explicitly lists both as registerable roles with no mention of restricting ADMIN
 security trade-off (anyone can self-register as an admin) but restricting it wasn't asked for and
 would contradict the spec, so it's flagged here rather than silently "fixed."
 
-## 10. `Roles`/`RoleEnum` left in `src/user/enum/roleEnum.ts`
+## 10. `Roles`/`RoleEnum` moved to `src/auth/enum/role.enum.ts`
 
-The pre-existing `Roles` decorator (built with `Reflector.createDecorator`) and `RoleEnum` were
-kept exactly where they already were rather than relocated to `src/common/`. `common/guards/roles.guard.ts`
-imports them across the module boundary instead. This is a minor layering smell (a "common" guard
-depending on a feature module) but avoids churning two files that already worked and were already
-tested, in line with "keep as much of my existing logic as possible."
+Originally kept at `src/user/enum/roleEnum.ts` to avoid churning a working file. Once the `user`
+module was removed entirely (§8), `Roles`/`RoleEnum` moved to `src/auth/enum/role.enum.ts` —
+renamed to match the rest of the codebase's `*.enum.ts` convention (`mechanic-status.enum.ts`,
+`vehicle-status.enum.ts`, etc.) instead of the original's bare `roleEnum.ts`. `common/guards/roles.guard.ts`
+and every controller using `@Roles()` import from there now. This still leaves a minor layering
+smell (a "common" guard depending on a feature module, `auth`), but `auth` is the natural home for
+role/identity concerns, more so than `user` ever was.
 
 ## 11. `main.ts` vs. `APP_GUARD` registration
 
@@ -219,9 +225,10 @@ wasn't added.
 
 ## Pre-existing issues found (not introduced by this work)
 
-- **Fixed**: `src/user/user.controller.spec.ts` predated this build-out and was already broken —
-  it never mocked `UserRepository`, so `npm run test` failed on it before any of these changes.
-  Fixed using the same mocked-repository pattern as `user.service.spec.ts`.
+- **Fixed, then removed**: `src/user/user.controller.spec.ts` predated this build-out and was
+  already broken (never mocked `UserRepository`). Fixed using the mocked-repository pattern also
+  used by `user.service.spec.ts`/`auth/user.service.spec.ts`, then deleted along with the rest of
+  `src/user/` once the controller it tested was removed (§8).
 - **Fixed**: `DATABASE_DB` vs `DATABASE_db` casing mismatch — see §12.
 
 ## 21. `forbidNonWhitelisted` vs. class field default initializers

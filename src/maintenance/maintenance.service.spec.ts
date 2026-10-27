@@ -10,7 +10,7 @@ import { MechanicService } from '../mechanic/mechanic.service.js';
 import { WorkshopService } from '../workshop/workshop.service.js';
 import { VehicleStatusEnum } from '../vehicle/enum/vehicle-status.enum.js';
 import { MechanicStatusEnum } from '../mechanic/enum/mechanic-status.enum.js';
-import { RoleEnum } from '../user/enum/roleEnum.js';
+import { RoleEnum } from '../auth/enum/role.enum.js';
 
 describe('MaintenanceService', () => {
   let service: MaintenanceService;

@@ -3,8 +3,8 @@ import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { hash } from 'bcryptjs';
 import { AuthService } from './auth.service.js';
-import { UserService } from '../user/user.service.js';
-import { RoleEnum } from '../user/enum/roleEnum.js';
+import { UserService } from './user.service.js';
+import { RoleEnum } from './enum/role.enum.js';
 
 describe('AuthService', () => {
   let service: AuthService;

@@ -2,14 +2,16 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { UserModule } from '../user/user.module.js';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { User } from './entities/user.entity.js';
+import { UserService } from './user.service.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { JwtStrategy } from './strategies/jwt.strategy.js';
 
 @Module({
   imports: [
-    UserModule,
+    TypeOrmModule.forFeature([User]),
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -23,6 +25,9 @@ import { JwtStrategy } from './strategies/jwt.strategy.js';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, UserService, JwtStrategy],
+  // UserService is exported for MechanicModule (validates a user before linking Mechanic.userId)
+  // and for the seeder (app.get(UserService)).
+  exports: [UserService],
 })
 export class AuthModule {}

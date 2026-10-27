@@ -3,7 +3,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { WorkshopService } from './workshop.service.js';
 import { CreateWorkshopDto } from './dto/create-workshop.dto.js';
 import { UpdateWorkshopDto } from './dto/update-workshop.dto.js';
-import { Roles, RoleEnum } from '../user/enum/roleEnum.js';
+import { Roles, RoleEnum } from '../auth/enum/role.enum.js';
 import { WorkshopStatusEnum } from './enum/workshop-status.enum.js';
 
 @ApiTags('Workshop')

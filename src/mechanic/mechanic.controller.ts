@@ -3,7 +3,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { MechanicService } from './mechanic.service.js';
 import { CreateMechanicDto } from './dto/create-mechanic.dto.js';
 import { UpdateMechanicDto } from './dto/update-mechanic.dto.js';
-import { Roles, RoleEnum } from '../user/enum/roleEnum.js';
+import { Roles, RoleEnum } from '../auth/enum/role.enum.js';
 import { MechanicStatusEnum } from './enum/mechanic-status.enum.js';
 
 @ApiTags('Mechanic')
