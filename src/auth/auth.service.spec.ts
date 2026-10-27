@@ -73,6 +73,36 @@ describe('AuthService', () => {
     ).rejects.toThrow(UnauthorizedException);
   });
 
+  it('registers a new user and returns a signed JWT', async () => {
+    userService.findByEmail.mockResolvedValue(null);
+    userService.create.mockResolvedValue({
+      id: 1,
+      email: 'new@fleetcore.com',
+      firstname: 'A',
+      lastname: 'B',
+      role: RoleEnum.TECHNICIAN,
+    });
+
+    const result = await service.register({
+      email: 'new@fleetcore.com',
+      firstname: 'A',
+      lastname: 'B',
+      password: 'pw',
+      role: RoleEnum.TECHNICIAN,
+      isActive: true,
+    });
+
+    expect(userService.create).toHaveBeenCalled();
+    expect(result.accessToken).toBe('signed-jwt');
+    expect(result.user).toEqual({
+      id: 1,
+      email: 'new@fleetcore.com',
+      firstname: 'A',
+      lastname: 'B',
+      role: RoleEnum.TECHNICIAN,
+    });
+  });
+
   it('returns a signed JWT on successful login', async () => {
     const passwordHash = await hash('correct-password', 10);
     userService.findByEmail.mockResolvedValue({
