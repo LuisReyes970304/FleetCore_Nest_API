@@ -9,7 +9,10 @@ describe('Workshop entity relations', () => {
     const relation = getMetadataArgsStorage().relations.find(
       (r) => r.target === Workshop && r.propertyName === 'maintenances',
     )!;
-    expect(relation.type()).toBe(Maintenance);
+    // relation.type is typed as RelationTypeInFunction (a union that also allows a bare string/
+    // class target), but every relation in this codebase passes the `() => Class` thunk form —
+    // cast narrows it back to that for the call.
+    expect((relation.type as () => Function)()).toBe(Maintenance);
     const sentinel = Symbol('workshop');
     expect((relation.inverseSideProperty as (m: Maintenance) => unknown)({ workshop: sentinel } as unknown as Maintenance)).toBe(
       sentinel,

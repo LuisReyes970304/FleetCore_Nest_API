@@ -26,10 +26,14 @@ describe('Maintenance entity relations', () => {
     getMetadataArgsStorage().relations.find(
       (relation) => relation.target === Maintenance && relation.propertyName === propertyName,
     )!;
+  // relation.type is typed as RelationTypeInFunction (a union that also allows a bare string/
+  // class target), but every relation in this codebase passes the `() => Class` thunk form —
+  // cast narrows it back to that for the call.
+  const resolveType = (relation: ReturnType<typeof relationFor>) => (relation.type as () => Function)();
 
   it('wires the vehicle relation to Vehicle.maintenances', () => {
     const relation = relationFor('vehicle');
-    expect(relation.type()).toBe(Vehicle);
+    expect(resolveType(relation)).toBe(Vehicle);
     const sentinel = Symbol('maintenances');
     expect((relation.inverseSideProperty as (v: Vehicle) => unknown)({ maintenances: sentinel } as unknown as Vehicle)).toBe(
       sentinel,
@@ -38,7 +42,7 @@ describe('Maintenance entity relations', () => {
 
   it('wires the mechanic relation to Mechanic.maintenances', () => {
     const relation = relationFor('mechanic');
-    expect(relation.type()).toBe(Mechanic);
+    expect(resolveType(relation)).toBe(Mechanic);
     const sentinel = Symbol('maintenances');
     expect((relation.inverseSideProperty as (m: Mechanic) => unknown)({ maintenances: sentinel } as unknown as Mechanic)).toBe(
       sentinel,
@@ -47,7 +51,7 @@ describe('Maintenance entity relations', () => {
 
   it('wires the workshop relation to Workshop.maintenances', () => {
     const relation = relationFor('workshop');
-    expect(relation.type()).toBe(Workshop);
+    expect(resolveType(relation)).toBe(Workshop);
     const sentinel = Symbol('maintenances');
     expect((relation.inverseSideProperty as (w: Workshop) => unknown)({ maintenances: sentinel } as unknown as Workshop)).toBe(
       sentinel,

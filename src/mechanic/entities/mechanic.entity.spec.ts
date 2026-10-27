@@ -11,14 +11,19 @@ describe('Mechanic entity relations', () => {
       (relation) => relation.target === Mechanic && relation.propertyName === propertyName,
     )!;
 
+  // relation.type is typed as RelationTypeInFunction (a union that also allows a bare string/
+  // class target), but every relation in this codebase passes the `() => Class` thunk form —
+  // cast narrows it back to that for the call.
+  const resolveType = (relation: ReturnType<typeof relationFor>) => (relation.type as () => Function)();
+
   it('wires the user relation to the User entity', () => {
     const relation = relationFor('user');
-    expect(relation.type()).toBe(User);
+    expect(resolveType(relation)).toBe(User);
   });
 
   it('wires the maintenances relation to Maintenance.mechanic', () => {
     const relation = relationFor('maintenances');
-    expect(relation.type()).toBe(Maintenance);
+    expect(resolveType(relation)).toBe(Maintenance);
     const sentinel = Symbol('mechanic');
     expect((relation.inverseSideProperty as (m: Maintenance) => unknown)({ mechanic: sentinel } as unknown as Maintenance)).toBe(
       sentinel,
