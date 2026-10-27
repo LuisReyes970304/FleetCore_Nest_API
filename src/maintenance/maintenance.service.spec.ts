@@ -222,6 +222,7 @@ describe('MaintenanceService', () => {
         vehicleId: 1,
         mileage: 1000,
       })
+      .mockResolvedValueOnce(null) // no other IN_PROGRESS maintenance for this mechanic
       .mockResolvedValueOnce({ id: 10, status: MaintenanceStatusEnum.IN_PROGRESS });
 
     await service.updateStatus(
@@ -264,5 +265,77 @@ describe('MaintenanceService', () => {
       { status: VehicleStatusEnum.AVAILABLE, mileage: 1200 },
       expect.anything(),
     );
+  });
+
+  it('rejects editing a maintenance that is already COMPLETED', async () => {
+    maintenanceRepository.findOne.mockResolvedValueOnce({
+      id: 10,
+      status: MaintenanceStatusEnum.COMPLETED,
+      mechanicId: 2,
+      vehicleId: 1,
+      workshopId: 3,
+      mileage: 1000,
+      vehicle,
+      scheduledAt: new Date('2026-10-28T07:30:00.000Z'),
+      scheduledEndAt: new Date('2026-10-28T09:00:00.000Z'),
+    });
+
+    await expect(service.update(10, { description: 'Updated description' })).rejects.toThrow(
+      ConflictException,
+    );
+  });
+
+  it('rejects reassigning a maintenance to an inactive mechanic', async () => {
+    maintenanceRepository.findOne.mockResolvedValueOnce({
+      id: 10,
+      status: MaintenanceStatusEnum.SCHEDULED,
+      mechanicId: 2,
+      vehicleId: 1,
+      workshopId: 3,
+      mileage: 1000,
+      vehicle,
+      scheduledAt: new Date('2026-10-28T07:30:00.000Z'),
+      scheduledEndAt: new Date('2026-10-28T09:00:00.000Z'),
+    });
+    mechanicService.assertActiveAndExists.mockRejectedValueOnce(
+      new ConflictException('Mechanic #5 is inactive'),
+    );
+
+    await expect(service.update(10, { mechanicId: 5 })).rejects.toThrow(ConflictException);
+  });
+
+  it('rejects starting a maintenance when the mechanic already has another one in progress', async () => {
+    maintenanceRepository.findOne
+      .mockResolvedValueOnce({
+        id: 10,
+        status: MaintenanceStatusEnum.SCHEDULED,
+        mechanicId: 2,
+        vehicleId: 1,
+        mileage: 1000,
+      })
+      .mockResolvedValueOnce({ id: 77, status: MaintenanceStatusEnum.IN_PROGRESS });
+
+    await expect(
+      service.updateStatus(
+        10,
+        { status: MaintenanceStatusEnum.IN_PROGRESS },
+        { id: 1, email: 'admin@fleetcore.com', role: RoleEnum.ADMIN },
+      ),
+    ).rejects.toThrow(ConflictException);
+  });
+
+  it('rejects a maintenance whose scheduledEndAt is before scheduledAt', async () => {
+    await expect(
+      service.create({
+        vehicleId: 1,
+        mechanicId: 2,
+        workshopId: 3,
+        type: MaintenanceTypeEnum.PREVENTIVE,
+        description: 'Test',
+        mileage: 1500,
+        scheduledAt: '2026-10-28T09:00:00.000Z',
+        scheduledEndAt: '2026-10-28T08:00:00.000Z',
+      }),
+    ).rejects.toThrow(BadRequestException);
   });
 });

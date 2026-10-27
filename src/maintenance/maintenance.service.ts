@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, In, Repository } from 'typeorm';
+import { DataSource, FindOptionsWhere, In, Not, Repository } from 'typeorm';
 import { VehicleService } from '../vehicle/vehicle.service.js';
 import { MechanicService } from '../mechanic/mechanic.service.js';
 import { WorkshopService } from '../workshop/workshop.service.js';
@@ -53,6 +53,10 @@ export class MaintenanceService {
     const scheduledEndAt = dto.scheduledEndAt
       ? new Date(dto.scheduledEndAt)
       : new Date(scheduledAt.getTime() + DEFAULT_MAINTENANCE_DURATION_MINUTES * 60_000);
+
+    if (scheduledEndAt <= scheduledAt) {
+      throw new BadRequestException('scheduledEndAt must be after scheduledAt');
+    }
 
     // Two distinct "no double-booking" rules: the vehicle rule is flat (any active maintenance
     // at all blocks a new one), the mechanic rule is genuinely time-window/interval-based.
@@ -120,7 +124,63 @@ export class MaintenanceService {
   }
 
   async update(id: number, dto: UpdateMaintenanceDto) {
-    await this.findOne(id);
+    const maintenance = await this.findOne(id);
+
+    // A finished (COMPLETED/CANCELLED) maintenance is a closed record — none of its fields,
+    // including the vehicle/mechanic/workshop it was assigned to, may be edited afterwards.
+    if (
+      maintenance.status === MaintenanceStatusEnum.COMPLETED ||
+      maintenance.status === MaintenanceStatusEnum.CANCELLED
+    ) {
+      throw new ConflictException(
+        `Cannot edit a maintenance that is already ${maintenance.status}`,
+      );
+    }
+
+    const vehicleChanged = dto.vehicleId !== undefined && dto.vehicleId !== maintenance.vehicleId;
+    const mechanicChanged =
+      dto.mechanicId !== undefined && dto.mechanicId !== maintenance.mechanicId;
+    const workshopChanged =
+      dto.workshopId !== undefined && dto.workshopId !== maintenance.workshopId;
+    const scheduleChanged = dto.scheduledAt !== undefined || dto.scheduledEndAt !== undefined;
+
+    // Re-validates exactly the same way create() does, but only for the fields that actually
+    // changed — re-checking untouched fields would reject edits based on state that was already
+    // valid when the maintenance was created.
+    let vehicle = maintenance.vehicle;
+    if (vehicleChanged) {
+      vehicle = await this.vehicleService.assertExistsAndActive(dto.vehicleId!);
+      await this.assertVehicleHasNoActiveMaintenance(dto.vehicleId!, id);
+    }
+
+    if (mechanicChanged) {
+      await this.mechanicService.assertActiveAndExists(dto.mechanicId!);
+    }
+
+    if (workshopChanged) {
+      await this.workshopService.assertActiveAndExists(dto.workshopId!);
+    }
+
+    const scheduledAt = dto.scheduledAt ? new Date(dto.scheduledAt) : maintenance.scheduledAt;
+    const scheduledEndAt = dto.scheduledEndAt
+      ? new Date(dto.scheduledEndAt)
+      : maintenance.scheduledEndAt;
+
+    if (scheduledEndAt <= scheduledAt) {
+      throw new BadRequestException('scheduledEndAt must be after scheduledAt');
+    }
+
+    if (mechanicChanged || scheduleChanged) {
+      const mechanicId = dto.mechanicId ?? maintenance.mechanicId;
+      await this.assertMechanicHasNoOverlap(mechanicId, scheduledAt, scheduledEndAt, id);
+    }
+
+    if (dto.mileage !== undefined && dto.mileage < vehicle.mileage) {
+      throw new BadRequestException(
+        `Maintenance mileage (${dto.mileage}) cannot be lower than the vehicle's current mileage (${vehicle.mileage})`,
+      );
+    }
+
     const changes: Partial<Maintenance> = {
       type: dto.type,
       description: dto.description,
@@ -139,6 +199,12 @@ export class MaintenanceService {
     const maintenance = await this.findOne(id);
     await this.assertOwnership(maintenance, currentUser);
     assertValidTransition(maintenance.status, dto.status);
+
+    // Stricter than the overlap check on create(): a mechanic may have several non-overlapping
+    // SCHEDULED jobs queued up, but can only be actively working on one at a time.
+    if (dto.status === MaintenanceStatusEnum.IN_PROGRESS) {
+      await this.assertMechanicHasNoOtherInProgress(maintenance.mechanicId, id);
+    }
 
     if (dto.status === MaintenanceStatusEnum.COMPLETED) {
       if (dto.finalMileage == null || dto.finalCost == null || !dto.workPerformed) {
@@ -206,10 +272,17 @@ export class MaintenanceService {
     }
   }
 
-  private async assertVehicleHasNoActiveMaintenance(vehicleId: number) {
-    const existing = await this.maintenanceRepository.findOne({
-      where: { vehicleId, status: In(ACTIVE_MAINTENANCE_STATUSES) },
-    });
+  // excludeMaintenanceId lets update() re-run this check against the maintenance's own
+  // (unchanged) row without it counting as a conflict against itself.
+  private async assertVehicleHasNoActiveMaintenance(vehicleId: number, excludeMaintenanceId?: number) {
+    const where: FindOptionsWhere<Maintenance> = {
+      vehicleId,
+      status: In(ACTIVE_MAINTENANCE_STATUSES),
+    };
+    if (excludeMaintenanceId !== undefined) {
+      where.id = Not(excludeMaintenanceId);
+    }
+    const existing = await this.maintenanceRepository.findOne({ where });
     if (existing) {
       throw new ConflictException(`Vehicle #${vehicleId} already has an active maintenance`);
     }
@@ -219,16 +292,40 @@ export class MaintenanceService {
     mechanicId: number,
     scheduledAt: Date,
     scheduledEndAt: Date,
+    excludeMaintenanceId?: number,
   ) {
-    const candidates = await this.maintenanceRepository.find({
-      where: { mechanicId, status: In(ACTIVE_MAINTENANCE_STATUSES) },
-    });
+    const where: FindOptionsWhere<Maintenance> = {
+      mechanicId,
+      status: In(ACTIVE_MAINTENANCE_STATUSES),
+    };
+    if (excludeMaintenanceId !== undefined) {
+      where.id = Not(excludeMaintenanceId);
+    }
+    const candidates = await this.maintenanceRepository.find({ where });
     const overlaps = candidates.some(
       (existing) => scheduledAt < existing.scheduledEndAt && scheduledEndAt > existing.scheduledAt,
     );
     if (overlaps) {
       throw new ConflictException(
         `Mechanic #${mechanicId} already has an overlapping maintenance scheduled in this time window`,
+      );
+    }
+  }
+
+  // A mechanic can have several non-overlapping SCHEDULED jobs queued up (see
+  // assertMechanicHasNoOverlap), but only one IN_PROGRESS at a time — they can't physically be
+  // actively working on two vehicles simultaneously.
+  private async assertMechanicHasNoOtherInProgress(mechanicId: number, excludeMaintenanceId: number) {
+    const existing = await this.maintenanceRepository.findOne({
+      where: {
+        mechanicId,
+        status: MaintenanceStatusEnum.IN_PROGRESS,
+        id: Not(excludeMaintenanceId),
+      },
+    });
+    if (existing) {
+      throw new ConflictException(
+        `Mechanic #${mechanicId} already has another maintenance in progress`,
       );
     }
   }

@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
-import { ApiSecurity, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { VehicleService } from './vehicle.service.js';
 import { CreateVehicleDto } from './dto/create-vehicle.dto.js';
 import { UpdateVehicleDto } from './dto/update-vehicle.dto.js';
@@ -9,6 +9,7 @@ import { Public } from '../common/decorators/public.decorator.js';
 import { ApiKeyGuard } from '../common/guards/api-key.guard.js';
 
 @ApiTags('Vehicle')
+@ApiBearerAuth()
 @Controller('vehicle')
 export class VehicleController {
   constructor(private readonly vehicleService: VehicleService) {}
@@ -40,25 +41,25 @@ export class VehicleController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.vehicleService.findOne(+id);
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.vehicleService.findOne(id);
   }
 
   @Patch(':id')
   @Roles([RoleEnum.ADMIN])
-  update(@Param('id') id: string, @Body() updateVehicleDto: UpdateVehicleDto) {
-    return this.vehicleService.update(+id, updateVehicleDto);
+  update(@Param('id', ParseIntPipe) id: number, @Body() updateVehicleDto: UpdateVehicleDto) {
+    return this.vehicleService.update(id, updateVehicleDto);
   }
 
   @Patch(':id/deactivate')
   @Roles([RoleEnum.ADMIN])
-  deactivate(@Param('id') id: string) {
-    return this.vehicleService.setStatus(+id, VehicleStatusEnum.INACTIVE);
+  deactivate(@Param('id', ParseIntPipe) id: number) {
+    return this.vehicleService.setStatus(id, VehicleStatusEnum.INACTIVE);
   }
 
   @Patch(':id/reactivate')
   @Roles([RoleEnum.ADMIN])
-  reactivate(@Param('id') id: string) {
-    return this.vehicleService.setStatus(+id, VehicleStatusEnum.AVAILABLE);
+  reactivate(@Param('id', ParseIntPipe) id: number) {
+    return this.vehicleService.setStatus(id, VehicleStatusEnum.AVAILABLE);
   }
 }

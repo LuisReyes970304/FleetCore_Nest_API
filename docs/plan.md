@@ -244,10 +244,20 @@ existed) — fixed by adding `@IsOptional()` plus the appropriate type decorator
 (`@IsEnum(RoleEnum)` / `@IsBoolean()`) to both. Every DTO field needs at least one
 `class-validator` decorator, even purely-optional ones with a default value.
 
+## 22. One IN_PROGRESS maintenance per mechanic at a time
+
+§4's overlap rule (`assertMechanicHasNoOverlap`) only blocks *overlapping time windows* for
+`SCHEDULED`/`IN_PROGRESS` maintenances — a mechanic can still have several non-overlapping
+`SCHEDULED` jobs queued up across a day, which is intended (per §3.10 of the spec, back-to-back
+scheduling is explicitly allowed). But "a technician cannot have more than one active maintenance
+at the same time" is interpreted more strictly for the moment a maintenance actually starts: when
+a `PATCH /maintenance/:id/status` transition targets `IN_PROGRESS`,
+`MaintenanceService.assertMechanicHasNoOtherInProgress` rejects with 409 if that mechanic already
+has *any other* maintenance in `IN_PROGRESS` status, regardless of what time window either job was
+scheduled for. Rationale: a mechanic can plan/queue multiple future jobs, but can only be
+physically working on one vehicle at once — the overlap check governs the schedule, this check
+governs reality at the moment work actually begins.
+
 ## Known gaps / follow-ups
 
-- `PATCH /maintenance/:id` (generic field edits on a not-yet-started maintenance) does not
-  re-run the mileage/overlap checks if `scheduledAt`, `scheduledEndAt`, or `mileage` are changed
-  after creation. Acceptable for this scope; worth hardening later.
-- `README.md` has not been updated yet (setup steps, env vars, seeder usage, Swagger URL/
-  credentials) — explicitly deprioritized per the request that asked for this build-out.
+- `README.md` Coder/Clan fields are left as placeholders for the repo owner to fill in.

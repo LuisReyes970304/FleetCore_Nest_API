@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { MechanicService } from './mechanic.service.js';
 import { CreateMechanicDto } from './dto/create-mechanic.dto.js';
 import { UpdateMechanicDto } from './dto/update-mechanic.dto.js';
@@ -7,6 +7,7 @@ import { Roles, RoleEnum } from '../auth/enum/role.enum.js';
 import { MechanicStatusEnum } from './enum/mechanic-status.enum.js';
 
 @ApiTags('Mechanic')
+@ApiBearerAuth()
 @Controller('mechanic')
 export class MechanicController {
   constructor(private readonly mechanicService: MechanicService) {}
@@ -23,25 +24,25 @@ export class MechanicController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.mechanicService.findOne(+id);
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.mechanicService.findOne(id);
   }
 
   @Patch(':id')
   @Roles([RoleEnum.ADMIN])
-  update(@Param('id') id: string, @Body() updateMechanicDto: UpdateMechanicDto) {
-    return this.mechanicService.update(+id, updateMechanicDto);
+  update(@Param('id', ParseIntPipe) id: number, @Body() updateMechanicDto: UpdateMechanicDto) {
+    return this.mechanicService.update(id, updateMechanicDto);
   }
 
   @Patch(':id/activate')
   @Roles([RoleEnum.ADMIN])
-  activate(@Param('id') id: string) {
-    return this.mechanicService.setStatus(+id, MechanicStatusEnum.ACTIVE);
+  activate(@Param('id', ParseIntPipe) id: number) {
+    return this.mechanicService.setStatus(id, MechanicStatusEnum.ACTIVE);
   }
 
   @Patch(':id/deactivate')
   @Roles([RoleEnum.ADMIN])
-  deactivate(@Param('id') id: string) {
-    return this.mechanicService.setStatus(+id, MechanicStatusEnum.INACTIVE);
+  deactivate(@Param('id', ParseIntPipe) id: number) {
+    return this.mechanicService.setStatus(id, MechanicStatusEnum.INACTIVE);
   }
 }

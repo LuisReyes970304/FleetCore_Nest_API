@@ -58,9 +58,20 @@ Populates the database with a ready-to-use dataset (admin + technician users, me
 to the technicians, workshops, vehicles in every status, and maintenance history). Safe to run
 more than once — existing rows are detected by their unique key and skipped.
 
-```bash
-$ npm run seed
-```
+`npm run seed` compiles the project and runs the seeder against whatever `DATABASE_HOST` points
+to in your environment, so where you run it from matters:
+
+- **Running on the host** (API not started via Docker): `DATABASE_HOST` in `.env` is normally
+  `db` (the Docker Compose service name), which doesn't resolve outside the Compose network. Set
+  it to `localhost` for the seed run:
+  ```bash
+  $ DATABASE_HOST=localhost npm run seed
+  ```
+- **Running inside Docker** (the `api` container is already up via `docker compose up`): run the
+  seeder inside that container instead, where `DATABASE_HOST=db` already resolves correctly:
+  ```bash
+  $ docker compose exec api npm run seed
+  ```
 
 Seeded credentials (see `src/database/seeders/seed.ts` for the full dataset):
 
