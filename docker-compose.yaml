@@ -1,0 +1,32 @@
+services:
+  api:
+    build: ./
+    container_name: ${CONTAINER_NAME}
+    ports:
+      - "${PORT}:${PORT}"
+    env_file:
+      - .env
+    depends_on:
+      db: 
+        condition: service_healthy
+    restart: always
+  db:
+    image: postgres:15.3-alpine
+    container_name: ${DATABASE_USER}
+    environment:
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_db}
+    ports:
+      - "${DATABASE_PORT}:${DATABASE_PORT}"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${DATABASE_USER}"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+
+
+volumes:
+  db_data:
