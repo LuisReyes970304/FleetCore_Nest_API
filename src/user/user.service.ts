@@ -26,6 +26,14 @@ export class UserService {
     return this.userRepository.find({ where: { isActive: true } });
   }
 
+  // includeInactive is needed by AuthService: registration must reject an email that belongs to
+  // a soft-deleted user too, while login must only ever succeed for an active one.
+  findByEmail(email: string, options: { includeInactive?: boolean } = {}) {
+    return this.userRepository.findOneBy(
+      options.includeInactive ? { email } : { email, isActive: true },
+    );
+  }
+
   async findOne(id: number) {
     const user = await this.userRepository.findOneBy({ id, isActive: true });
     if (!user) {

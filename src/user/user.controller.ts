@@ -2,8 +2,12 @@ import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/commo
 import { UserService } from './user.service.js';
 import { CreateUserDto } from './dto/create-user.dto.js';
 import { UpdateUserDto } from './dto/update-user.dto.js';
+import { Roles, RoleEnum } from './enum/roleEnum.js';
 
+// Direct user management is an admin-only panel now that self-registration exists at
+// POST /auth/register (which also issues a JWT) — see docs/plan.md for the rationale.
 @Controller('user')
+@Roles([RoleEnum.ADMIN])
 export class UserController {
   constructor(private readonly userService: UserService) {}
 

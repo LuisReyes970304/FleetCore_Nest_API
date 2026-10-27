@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { RoleEnum } from "../enum/roleEnum.js";
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsBoolean, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateUserDto {
   @ApiProperty({description: 'The email of the user', example: 'luisreyes@gmail.com'})
@@ -23,9 +23,13 @@ export class CreateUserDto {
   @IsNotEmpty()
   password: string;
 
-  @ApiProperty({ description: "Choose between Admin and Technician", enum: RoleEnum, default: RoleEnum.ADMIN, isArray: true })
-  roles: RoleEnum[] = [];
+  @ApiProperty({ description: "Choose between Admin and Technician", enum: RoleEnum, default: RoleEnum.ADMIN, required: false })
+  @IsOptional()
+  @IsEnum(RoleEnum)
+  role: RoleEnum = RoleEnum.ADMIN;
 
   @ApiProperty({ description: "Indicates if the user is active", required: false, default: true })
-  isActive: boolean = true;    
+  @IsOptional()
+  @IsBoolean()
+  isActive: boolean = true;
 }
